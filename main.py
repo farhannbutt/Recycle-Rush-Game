@@ -20,21 +20,33 @@ def draw_grid():
  for line in range(0, 20):
   pygame.draw.line(screen, (255, 255, 255), (0, line * tile_size), (screen_width, line * tile_size))
   pygame.draw.line(screen, (255, 255, 255), (line * tile_size, 0), (line * tile_size, screen_height))
+     #drawing player
 class Player:
         def __init__(self, x, y):
-            img = pygame.image.load('guy1.png')
-            self.image = pygame.transform.scale(img, (50, 50))
+            self.images_right = []
+            self.images_left = []
+            self.index = 0
+            self.counter = 0
+            for num in range(1, 5):
+                img_right = pygame.image.load(f'guy{num}.png')
+                img_right = pygame.transform.scale(img_right, (40, 50))
+                img_left = pygame.transform.flip(img_right, True, False)
+                self.images_right.append(img_right)
+                self.images_left.append(img_left)
+            self.image = self.images_right[self.index]
             self.rect = self.image.get_rect()
             self.rect.x = x
             self.rect.y = y
+            self.width = self.image.get_width()
+            self.height = self.image.get_height()
             self.vel_y = 0
             self.jumped = False
-
+            self.direction = 0
         def update(self):
             dx = 0
             dy = 0
-
-            # get keypresses
+            walk_cooldown = 20
+            # moving player
             key = pygame.key.get_pressed()
             if key[pygame.K_SPACE] and self.jumped == False:
                 self.vel_y = -12
@@ -43,10 +55,23 @@ class Player:
                 self.jumped = False
             if key[pygame.K_LEFT]:
                 dx -= 3
+                self.counter += 1
+                self.direction = -1
             if key[pygame.K_RIGHT]:
                 dx += 3
+                self.counter += 1
+                self.direction = 1
+            if key[pygame.K_LEFT] == False and key[pygame.K_RIGHT] == False:
+                self.counter = 0
+                self.index = 0
+                if self.direction == 1:
+                    self.image = self.images_right[self.index]
+                if self.direction == -1:
+                    self.image = self.images_left[self.index]
 
-            # add gravity
+
+
+            #gravity
             self.vel_y += 1
             if self.vel_y > 10:
                 self.vel_y = 10
@@ -54,7 +79,7 @@ class Player:
 
             # check for collision
 
-            # update player coordinates
+            # update player coordinates/ stopping player from falling down
             self.rect.x += dx
             self.rect.y += dy
 
@@ -62,7 +87,7 @@ class Player:
                 self.rect.bottom = screen_height
                 dy = 0
 
-            # draw player onto screen
+            # drawing player on the screen
             screen.blit(self.image, self.rect)
 
 
@@ -70,7 +95,7 @@ class World:
     def __init__(self, data):
         self.tile_list = []
 
-        # load images and assigning number to the list below
+        # load  images and assigning number to the list below
         purpsss = pygame.image.load('reddd.png')
         wall_img = pygame.image.load('brickwall.png')
         row_count = 0
@@ -125,16 +150,15 @@ world_data= [
 Player = Player(35, screen_height - 110)
 world = World(world_data)
 
+
 run = True
 while run:
 
 	screen.blit(bg_img, (0, 0))
-
-
 	world.draw()
-
 	Player.update()
 
+    #draw_grid()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			run = False
