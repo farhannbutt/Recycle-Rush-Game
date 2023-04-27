@@ -7,7 +7,7 @@ pygame.mixer.music.load('Chucky.mp3')
 pygame.mixer.music.play()
 pygame.init()
 clock = pygame.time.Clock()
-fps = 100
+fps = 60
 screen_width = 600
 screen_height = 600
 screen = pygame.display.set_mode((screen_height, screen_width))
@@ -16,7 +16,7 @@ pygame.display.set_caption('Rocket man')
 tile_size = 30
 game_over = 0
 score = 0
-bg_img = pygame.image.load('Convergence.png')
+bg_img = pygame.image.load('cccc.png')
 restart_img = pygame.image.load('restart_btn.png')
 
 #Creating Grids on the game
@@ -53,21 +53,45 @@ class Button:
 
         return action
 
-
-
-
 class Player:
     def __init__(self, x, y):
         self.reset(x, y)
+        #touch screen mobile
+       # pygame.mouse.set_visible(False)
+        pygame.display.init()
     def update(self, game_over):
         dx = 0
         dy = 0
         walk_cooldown = 20
         if game_over == 0:
             # moving player
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN and self.jumped == False and self.jump_limit == False:
+                    self.vel_y = -14
+                    self.jumped = True
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.jumped = False
+                elif event.type == pygame.MOUSEMOTION:
+                    rel = pygame.mouse.get_rel()
+                    if rel[0] < 0:
+                        dx -= 3
+                        self.counter += 1
+                        self.direction = -1
+                    elif rel[0] > 0:
+                        dx += 3
+                        self.counter += 1
+                        self.direction = 1
+
+            if not any(pygame.mouse.get_pressed()):
+                self.counter = 0
+                self.index = 0
+                if self.direction == 1:
+                    self.image = self.images_right[self.index]
+                elif self.direction == -1:
+                    self.image = self.images_left[self.index]
             key = pygame.key.get_pressed()
-            if key[pygame.K_SPACE] and self.jumped == False:
-                self.vel_y = -12
+            if key[pygame.K_SPACE] and self.jumped == False and self.jump_limit == False:
+                self.vel_y = -14
                 self.jumped = True
             if key[pygame.K_SPACE] == False:
                 self.jumped = False
@@ -87,7 +111,6 @@ class Player:
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
 
-
             #Handling animation
             if self.counter > walk_cooldown:
                 self.counter = 0
@@ -105,6 +128,7 @@ class Player:
                 self.vel_y = 10
 
             #check for collision
+            self.jump_limit = True
             for tile in world.tile_list:
                 # check for collision in x direction
                 if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
@@ -119,12 +143,13 @@ class Player:
                     elif self.vel_y >= 0:
                         dy = tile[1].top - self.rect.bottom
                         self.vel_y = 0
+                        self.jump_limit = False
 
             # checking for collision amongst enemies
             if pygame.sprite.spritecollide(self, blob_group, False):
                 game_over = -1
             # checking for collision amongst toxic waste
-            if pygame.sprite.spritecollide(self, lava_group, False):
+            if pygame.sprite.spritecollide(self, Toxic_group, False):
                 game_over = -1
             # checking for collision amongst recycling machine
             if pygame.sprite.spritecollide(self, Recycle_group, True):
@@ -167,7 +192,7 @@ class World:
 
         # load images and assigning number to the list below
         purpsss = pygame.image.load('reddd.png')
-        wall_img = pygame.image.load('brickwall.png')
+        wall_img = pygame.image.load('purpsss.png')
         row_count = 0
         for row in data:
             col_count = 0
@@ -193,8 +218,8 @@ class World:
                     blob = Enemy(col_count * tile_size, row_count * tile_size )
                     blob_group.add(blob)
                 if tile == 6:
-                    lava = Lava(col_count * tile_size, row_count * tile_size + (tile_size // 1))
-                    lava_group.add(lava)
+                    new_toxic = ToxicWaste(col_count * tile_size, row_count * tile_size + (tile_size // 1))
+                    Toxic_group.add(new_toxic)
                 if tile == 4:
                     garbage = Garbage(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
                     Garbage_group.add(garbage)
@@ -214,7 +239,7 @@ class World:
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load('ghost2.png')
+        self.image = pygame.image.load('smogg.png')
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -227,11 +252,11 @@ class Enemy(pygame.sprite.Sprite):
             self.move_direction *= -1
             self.move_counter *= -1
 
-#creating lava
-class Lava(pygame.sprite.Sprite):
+#creating Toxic
+class ToxicWaste(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        img = pygame.image.load('lava3.png')
+        img = pygame.image.load('toxic.png')
         self.image = pygame.transform.scale(img, (tile_size, tile_size))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -265,28 +290,28 @@ world_data= [
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1],
+[1, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 4, 0, 3, 3, 0, 0, 0, 0, 1],
+[1, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 3, 3, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 1],
-[1, 4, 0, 3, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+[1, 4, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 7, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 1],
 [1, 0, 0, 0, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 1],
-[1, 0, 0, 0, 0, 0, 7, 7, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 1],
-[1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+[1, 0, 0, 0, 0, 0, 7, 7, 6, 6, 6, 6, 0, 7, 7, 7, 7, 7, 7, 1],
+[1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
 Player = Player(35, screen_height - 110)
 
 blob_group = pygame.sprite.Group()
-lava_group = pygame.sprite.Group()
+Toxic_group = pygame.sprite.Group()
 Garbage_group = pygame.sprite.Group()
 Recycle_group = pygame.sprite.Group()
 world = World(world_data)
@@ -314,7 +339,7 @@ def game_loop():
             print(score)
 
         blob_group.draw(screen)
-        lava_group.draw(screen)
+        Toxic_group.draw(screen)
         Garbage_group.draw(screen)
         Recycle_group.draw(screen)
 
@@ -338,7 +363,7 @@ def game_loop():
 
 # creating start menu
 def draw_start_menu():
-    global start_rect, quit_rect 
+    global start_rect, quit_rect
     menu_bg_image = pygame.image.load("recycle-rush.png")
     screen.blit(menu_bg_image, (0, 0))
 
@@ -360,7 +385,5 @@ while True:
                 game_loop()
             elif quit_rect.collidepoint(mouse_pos):
                 pygame.quit()
-
     pygame.display.update()
-
-
+sys.exit()
