@@ -2,7 +2,8 @@ import pygame
 from pygame.locals import *
 
 pygame.init()
-
+clock = pygame.time.Clock()
+fps = 100
 screen_width = 600
 screen_height = 600
 
@@ -78,6 +79,20 @@ class Player:
             dy += self.vel_y
 
             # check for collision
+            for tile in world.tile_list:
+                # check for collision in x direction
+                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                    dx = 0
+                # check for collision in y direction
+                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                    # check if below the ground i.e. jumping
+                    if self.vel_y < 0:
+                        dy = tile[1].bottom - self.rect.top
+                        self.vel_y = 0
+                    # check if above the ground i.e. falling
+                    elif self.vel_y >= 0:
+                        dy = tile[1].top - self.rect.bottom
+                        self.vel_y = 0
 
             # update player coordinates/ stopping player from falling down
             self.rect.x += dx
@@ -95,7 +110,7 @@ class World:
     def __init__(self, data):
         self.tile_list = []
 
-        # load  images and assigning number to the list below
+        # load images and assigning number to the list below
         purpsss = pygame.image.load('reddd.png')
         wall_img = pygame.image.load('brickwall.png')
         row_count = 0
@@ -147,18 +162,20 @@ world_data= [
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
-Player = Player(35, screen_height - 110)
+player = Player(35, screen_height - 110)
 world = World(world_data)
-
 
 run = True
 while run:
 
-	screen.blit(bg_img, (0, 0))
-	world.draw()
-	Player.update()
+	clock.tick(fps)
 
-    #draw_grid()
+	screen.blit(bg_img, (0, 0))
+
+	world.draw()
+
+	player.update()
+
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			run = False
@@ -166,3 +183,4 @@ while run:
 	pygame.display.update()
 
 pygame.quit()
+
