@@ -1,27 +1,61 @@
+import data as data
 import pygame
-from pygame.locals import *
-
+import self as self
+from pygame.locals import*
+pygame.mixer.init()
+pygame.mixer.music.load('Chucky.mp3')
+pygame.mixer.music.play()
 pygame.init()
 clock = pygame.time.Clock()
 fps = 100
 screen_width = 600
 screen_height = 600
-
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption('rocketman')
-
-#define game variables
+screen = pygame.display.set_mode((screen_height, screen_width))
+pygame.display.set_caption('Rocket man')
+# Variable used in the game
 tile_size = 30
-
-
-#load images
+game_over = 0
+score = 0
 bg_img = pygame.image.load('Convergence.png')
+restart_img = pygame.image.load('restart_btn.png')
+
 #Creating Grids on the game
-def draw_grid():
- for line in range(0, 20):
-  pygame.draw.line(screen, (255, 255, 255), (0, line * tile_size), (screen_width, line * tile_size))
-  pygame.draw.line(screen, (255, 255, 255), (line * tile_size, 0), (line * tile_size, screen_height))
-     #drawing player
+#def draw_grid():
+ #for line in range(0, 20):
+  #pygame.draw.line(screen, (255, 255, 255), (0, line * tile_size), (screen_width, line * tile_size))
+  #pygame.draw.line(screen, (255, 255, 255), (line * tile_size, 0), (line * tile_size, screen_height))
+  #creating a list and player to add items into the grid
+class Button:
+    def __init__(self, x, y, image):
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.clicked = False
+
+    def draw(self):
+        action = False
+
+        # get mouse position
+        pos = pygame.mouse.get_pos()
+
+        # check mouseover and clicked conditions
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+                action = True
+                self.clicked = True
+
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+
+        # draw button
+        screen.blit(self.image, self.rect)
+
+        return action
+
+
+
+
 class Player:
     def __init__(self, x, y):
         self.reset(x, y)
@@ -52,6 +86,8 @@ class Player:
                     self.image = self.images_right[self.index]
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
+
+
             #Handling animation
             if self.counter > walk_cooldown:
                 self.counter = 0
@@ -91,11 +127,14 @@ class Player:
             if pygame.sprite.spritecollide(self, lava_group, False):
                 game_over = -1
             # checking for collision amongst recycling machine
+            if pygame.sprite.spritecollide(self, Recycle_group, True):
+                game_over = 1
+
 
             # update player coordinates/ stopping player from falling down
             self.rect.x += dx
             self.rect.y += dy
-     #drawing player on the screen
+     #drawing the player on the screen
         screen.blit(self.image, self.rect)
         return game_over
 
@@ -138,7 +177,9 @@ class World:
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size
                     img_rect.y = row_count * tile_size
+                    #tuple to store image and a rectangle around it
                     tile = (img, img_rect)
+                    #append is used to add items to the list
                     self.tile_list.append(tile)
 
                 if tile == 7:
@@ -149,21 +190,26 @@ class World:
                         tile = (img, img_rect)
                         self.tile_list.append(tile)
                 if tile == 3:
-                    blob = Enemy(col_count * tile_size, row_count * tile_size)
+                    blob = Enemy(col_count * tile_size, row_count * tile_size )
                     blob_group.add(blob)
                 if tile == 6:
                     lava = Lava(col_count * tile_size, row_count * tile_size + (tile_size // 1))
                     lava_group.add(lava)
+                if tile == 4:
+                    garbage = Garbage(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
+                    Garbage_group.add(garbage)
+                if tile == 5:
+                    rec_mach = Exit(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
+                    Recycle_group.add(rec_mach)
+                    #count is used to increase column and row count as images are added to the list
                 col_count += 1
             row_count += 1
-
 
     #creation of tile and line thickness for colissions
     def draw(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
             pygame.draw.rect(screen, (255, 255, 255), tile[1], 2)
-
 #creating enemies
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -191,51 +237,130 @@ class Lava(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+#creating garbage
+
+
+class Garbage(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('trashh.png')
+        self.image = pygame.transform.scale(img, (tile_size // 1, tile_size // 1))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+
+#creating exit when the player reaches the recycling machine with garbage
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('rec3.png')
+        self.image = pygame.transform.scale(img, (tile_size, int(tile_size *  2.5)))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+
+#my list
 world_data= [
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 3, 3, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 1],
-[1, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+[1, 4, 0, 3, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 7, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 1],
-[1, 0, 0, 0, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 1],
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 1],
 [1, 0, 0, 0, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 1],
 [1, 0, 0, 0, 0, 0, 7, 7, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 1],
 [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
-player = Player(35, screen_height - 110)
+Player = Player(35, screen_height - 110)
+
 blob_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
+Garbage_group = pygame.sprite.Group()
+Recycle_group = pygame.sprite.Group()
 world = World(world_data)
+#creating buttons for restarting
+restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
 
-#Loop to start and end the game(grid added,)
-run = True
-while run:
-    clock.tick(fps)
-    screen.blit(bg_img, (0, 0))
+#creating menu button rectangles
+start_rect = pygame.Rect((screen_width/2 - 100, screen_height/2 - 50, 200, 100))
+quit_rect = pygame.Rect((screen_width/2 - 100, screen_height/2 + 65, 200, 100))
 
-    world.draw()
-    blob_group.update()
+def game_loop():
+    global game_over, score
+    #Loop to start and end the game(grid added,)
+    run = True
+    while run:
+        clock.tick(fps)
+        screen.blit(bg_img, (0, 0))
 
-    blob_group.draw(screen)
-    lava_group.draw(screen)
-# draw_grid()
+        world.draw()
+        blob_group.update()
+        # update score
+        #check if a garbage bag has been collected
+        if pygame.sprite.spritecollide(Player, Garbage_group, True):
+            score  = score + 1
+            print(score)
+
+        blob_group.draw(screen)
+        lava_group.draw(screen)
+        Garbage_group.draw(screen)
+        Recycle_group.draw(screen)
+
+        game_over= Player.update(game_over)
+
+        if game_over == -1:
+            if restart_button.draw():
+                Player.reset(35, screen_height - 110)
+                game_over = 0
+                score = 0
+
+        # draw_grid()
+
+        for event in pygame.event.get():
+            #screen.blit(crys_img, (100, 100))
+            if event.type == pygame.QUIT:
+                run = False
+
+        pygame.display.update()
+    pygame.quit()
+
+# creating start menu
+def draw_start_menu():
+    global start_rect, quit_rect 
+    menu_bg_image = pygame.image.load("recycle-rush.png")
+    screen.blit(menu_bg_image, (0, 0))
+
+    start_image = pygame.image.load("start-image.png")
+    screen.blit(start_image, start_rect)
+
+    quit_image = pygame.image.load("quit-image.png")
+    screen.blit(quit_image, quit_rect)
+
+draw_start_menu()
+#QUIT is used to close the window of the game
+while True:
     for event in pygame.event.get():
-        #screen.blit(crys_img, (100, 100))
         if event.type == pygame.QUIT:
-            run = False
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+            if start_rect.collidepoint(mouse_pos):
+                game_loop()
+            elif quit_rect.collidepoint(mouse_pos):
+                pygame.quit()
 
     pygame.display.update()
-pygame.quit()
-exit()
+
 
